@@ -34,7 +34,7 @@ export const ExtensionSyncIndicator: React.FC<Props> = ({
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
               <span className="text-amber-300 font-medium">
-                Extension offline. Open or pin the FlowVeo Chrome extension to enable real-time session sync.
+                Extension offline. Open or pin the FlowDeck Chrome extension to enable real-time session sync.
               </span>
             </div>
           )}

@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Open Web Dashboard
   btnOpenDashboard.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'http://localhost:5173' });
+    chrome.tabs.create({ url: 'https://flow.earthin.online' });
     window.close();
   });
 
