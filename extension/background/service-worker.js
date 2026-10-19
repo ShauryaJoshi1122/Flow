@@ -111,11 +111,13 @@ async function injectSessionCookies(sessionPayload) {
         continue;
       }
 
-      const rawDomain = cookie.domain || (cookie.name.includes('OSID') ? 'labs.google' : 'google.com');
+      const rawDomain = cookie.domain || (cookie.name.includes('OSID') ? 'flow.google.com' : 'google.com');
       // CRITICAL: Chrome cookies API strictly forbids leading dots in domain
       const cleanDomain = rawDomain.replace(/^\./, '');
+      const isFlow = cleanDomain.includes('flow.google.com');
       const isLabs = cleanDomain.includes('labs.google');
-      const targetUrl = isLabs ? 'https://labs.google/' : 'https://google.com/';
+      const isOrigin = isFlow || isLabs;
+      const targetUrl = isFlow ? 'https://flow.google.com/' : (isLabs ? 'https://labs.google/' : 'https://google.com/');
 
       // Remove previous cookie with same name before setting to ensure fresh state
       try {
@@ -136,20 +138,20 @@ async function injectSessionCookies(sessionPayload) {
         sameSite: isNoRestriction ? 'no_restriction' : (cookie.sameSite || 'lax')
       };
 
-      // For non-labs (e.g. google.com), set domain to cover subdomains. For labs.google, omit domain to create host-only cookie
-      if (!isLabs) {
+      // For apex/subdomain (google.com), set domain. For origin hosts (flow.google.com, labs.google), omit domain for host-only
+      if (!isOrigin) {
         cookieDetails.domain = cleanDomain;
       }
 
       await chrome.cookies.set(cookieDetails);
-      console.log(`[FlowDeck Ext] ✅ Injected cookie: ${cookie.name} -> ${isLabs ? 'labs.google (host-only)' : cleanDomain}`);
+      console.log(`[FlowDeck Ext] ✅ Injected cookie: ${cookie.name} -> ${isOrigin ? cleanDomain + ' (host-only)' : cleanDomain}`);
 
-      // For cross-subdomain Google cookies, also ensure labs.google can read them directly
-      if (!isLabs && (cookie.name === '__Secure-1PSID' || cookie.name === 'OSID' || cookie.name === 'SAPISID')) {
+      // Dual-inject OSID tokens across both flow.google.com and labs.google
+      if (cookie.name.includes('OSID')) {
         try {
           await chrome.cookies.set({
             ...cookieDetails,
-            url: 'https://labs.google/'
+            url: isFlow ? 'https://labs.google/' : 'https://flow.google.com/'
           });
         } catch (_) {}
       }
@@ -166,7 +168,7 @@ async function injectSessionCookies(sessionPayload) {
     }
   });
 
-  // Notify active Google Labs tabs
+  // Notify active Flow and Google Labs tabs
   broadcastToTabs({
     type: 'SESSION_SWITCHED',
     serverId: sessionPayload.serverId,
@@ -175,9 +177,9 @@ async function injectSessionCookies(sessionPayload) {
 }
 
 function broadcastToTabs(payload) {
-  chrome.tabs.query({ url: '*://labs.google/fx/tools/flow*' }, (tabs) => {
+  chrome.tabs.query({}, (tabs) => {
     for (const tab of tabs) {
-      if (tab.id) {
+      if (tab.id && tab.url && (tab.url.includes('flow.google.com') || tab.url.includes('labs.google/fx/tools/flow'))) {
         chrome.tabs.sendMessage(tab.id, payload).catch(() => {});
       }
     }
@@ -238,13 +240,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
 
-      // Focus or open Flow tab
-      chrome.tabs.query({ url: '*://labs.google/fx/tools/flow*' }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-          chrome.tabs.update(tabs[0].id, { active: true });
-          chrome.tabs.reload(tabs[0].id);
+      // Focus or open Flow tab (checking both flow.google.com and labs.google)
+      chrome.tabs.query({}, (tabs) => {
+        const flowTab = tabs.find(t => t.url && (t.url.includes('flow.google.com') || t.url.includes('labs.google/fx/tools/flow')));
+        if (flowTab) {
+          chrome.tabs.update(flowTab.id, { active: true });
+          chrome.tabs.reload(flowTab.id);
         } else {
-          chrome.tabs.create({ url: 'https://labs.google/fx/tools/flow' });
+          chrome.tabs.create({ url: 'https://flow.google.com' });
         }
       });
       sendResponse({ success: true });

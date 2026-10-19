@@ -28,8 +28,10 @@
     "scripting"
   ],
   "host_permissions": [
+    "https://flow.google.com/*",
     "https://labs.google/*",
     "https://*.google.com/*",
+    "https://google.com/*",
     "https://flow-x007.onrender.com/*",
     "https://flow.earthin.online/*",
     "http://localhost:3001/*",
@@ -38,6 +40,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://flow.google.com/*",
         "https://labs.google/fx/tools/flow*",
         "https://labs.google/fx/tools/flow/*"
       ],
