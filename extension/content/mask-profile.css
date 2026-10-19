@@ -1,0 +1,69 @@
+/* FlowVeo - Identity & Profile Masking Stylesheet
+ * Ensures underlying Google backend pooled account identity is completely hidden
+ */
+
+/* Hide Google account profile avatar, email display, and switcher buttons */
+[aria-label*="Google Account"],
+[aria-label*="Akun Google"],
+[aria-label*="Compte Google"],
+a[href*="accounts.google.com/SignOutOptions"],
+img[src*="googleusercontent.com/a/"],
+div[data-ogpc],
+div[role="menu"][aria-label*="Google"],
+.gb_A, .gb_B, .gb_d, .gb_e, .gb_f, .gb_g, .gb_h, .gb_i, .gb_k,
+header div:has(img[src*="googleusercontent.com"]),
+div[aria-label*="account"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* FlowVeo Protected Badge Replacement in Header */
+.flowveo-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 99999;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.flowveo-header-badge:hover {
+  border-color: rgba(96, 165, 250, 0.8);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.flowveo-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: flowveo-pulse 2s infinite;
+}
+
+@keyframes flowveo-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.flowveo-credits-pill {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
