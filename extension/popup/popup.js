@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'https://flow-x007.onrender.com/api';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const loginView = document.getElementById('loginView');

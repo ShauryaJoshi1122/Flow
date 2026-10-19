@@ -62,7 +62,8 @@ export const ServerSelector: React.FC<Props> = ({
     setSaveStatus(null);
 
     try {
-      const res = await fetch('http://localhost:3001/api/servers/update-account', {
+      const apiBase = import.meta.env.VITE_API_URL || 'https://flow-x007.onrender.com/api';
+      const res = await fetch(`${apiBase}/servers/update-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

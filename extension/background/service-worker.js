@@ -1,7 +1,7 @@
 // FlowDeck Chrome Extension - Background Service Worker (Manifest V3)
 
-const WS_URL = 'ws://localhost:3001/ws';
-const API_URL = 'http://localhost:3001/api';
+const WS_URL = 'wss://flow-x007.onrender.com/ws';
+const API_URL = 'https://flow-x007.onrender.com/api';
 
 let socket = null;
 let isConnected = false;

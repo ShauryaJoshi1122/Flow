@@ -6,8 +6,8 @@ import { CreditLedger, CreditPackage, CreditTransaction, ModelTier } from './com
 import { ProjectsExportView, VideoProject } from './components/ProjectsExportView.js';
 import { FailoverHistoryModal, FailoverEvent } from './components/FailoverHistoryModal.js';
 
-const API_BASE = 'http://localhost:3001/api';
-const WS_BASE = 'ws://localhost:3001/ws';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://flow-x007.onrender.com/api';
+const WS_BASE = import.meta.env.VITE_WS_URL || 'wss://flow-x007.onrender.com/ws';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'servers' | 'credits' | 'projects'>('servers');
