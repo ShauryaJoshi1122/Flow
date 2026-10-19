@@ -72,7 +72,7 @@ export class SessionManager {
     return {
       serverId: activeServer.id,
       serverName: activeServer.name,
-      targetUrl: 'https://labs.google/fx/tools/flow',
+      targetUrl: 'https://flow.google.com',
       cookies: rawServer ? rawServer.cookies : [],
       injectionTimestamp: new Date().toISOString()
     };

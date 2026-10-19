@@ -111,49 +111,68 @@ async function injectSessionCookies(sessionPayload) {
         continue;
       }
 
-      const rawDomain = cookie.domain || (cookie.name.includes('OSID') ? 'flow.google.com' : 'google.com');
-      // CRITICAL: Chrome cookies API strictly forbids leading dots in domain
-      const cleanDomain = rawDomain.replace(/^\./, '');
-      const isFlow = cleanDomain.includes('flow.google.com');
-      const isLabs = cleanDomain.includes('labs.google');
-      const isOrigin = isFlow || isLabs;
-      const targetUrl = isFlow ? 'https://flow.google.com/' : (isLabs ? 'https://labs.google/' : 'https://google.com/');
-
-      // Remove previous cookie with same name before setting to ensure fresh state
-      try {
-        await chrome.cookies.remove({ url: targetUrl, name: cookie.name });
-      } catch (_) {}
-
-      // CRITICAL: SAPISID and APISID must NOT be httpOnly so Google's JS can generate SAPISIDHASH
       const isClientAccessible = /^(SAPISID|APISID|__Secure-1PAPISID|__Secure-3PAPISID|_ga|SEARCH_SAMESITE|NID)/i.test(cookie.name);
       const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC|__Secure-OSID|OSID)/i.test(cookie.name);
+      const isOriginToken = cookie.name.includes('OSID');
 
-      const cookieDetails = {
-        url: targetUrl,
-        name: cookie.name,
-        value: cookie.value,
-        path: cookie.path || '/',
-        secure: true,
-        httpOnly: !isClientAccessible,
-        sameSite: isNoRestriction ? 'no_restriction' : (cookie.sameSite || 'lax')
-      };
+      if (isOriginToken) {
+        // Clear previous origin tokens
+        try { await chrome.cookies.remove({ url: 'https://flow.google.com/', name: cookie.name }); } catch (_) {}
+        try { await chrome.cookies.remove({ url: 'https://labs.google/', name: cookie.name }); } catch (_) {}
 
-      // For apex/subdomain (google.com), set domain. For origin hosts (flow.google.com, labs.google), omit domain for host-only
-      if (!isOrigin) {
-        cookieDetails.domain = cleanDomain;
-      }
+        // Set origin cookie for flow.google.com
+        await chrome.cookies.set({
+          url: 'https://flow.google.com/',
+          name: cookie.name,
+          value: cookie.value,
+          path: '/',
+          secure: true,
+          httpOnly: true,
+          sameSite: isNoRestriction ? 'no_restriction' : 'lax'
+        });
 
-      await chrome.cookies.set(cookieDetails);
-      console.log(`[FlowDeck Ext] ✅ Injected cookie: ${cookie.name} -> ${isOrigin ? cleanDomain + ' (host-only)' : cleanDomain}`);
-
-      // Dual-inject OSID tokens across both flow.google.com and labs.google
-      if (cookie.name.includes('OSID')) {
+        // Set origin cookie for labs.google
         try {
           await chrome.cookies.set({
-            ...cookieDetails,
-            url: isFlow ? 'https://labs.google/' : 'https://flow.google.com/'
+            url: 'https://labs.google/',
+            name: cookie.name,
+            value: cookie.value,
+            path: '/',
+            secure: true,
+            httpOnly: true,
+            sameSite: isNoRestriction ? 'no_restriction' : 'lax'
           });
         } catch (_) {}
+
+        console.log(`[FlowDeck Ext] ✅ Injected origin cookie: ${cookie.name} -> flow.google.com & labs.google`);
+      } else {
+        // Root Google account cookie (SID, __Secure-1PSID, SAPISID, etc.)
+        const rootDetails = {
+          url: 'https://flow.google.com/',
+          name: cookie.name,
+          value: cookie.value,
+          domain: 'google.com',
+          path: cookie.path || '/',
+          secure: true,
+          httpOnly: !isClientAccessible,
+          sameSite: isNoRestriction ? 'no_restriction' : (cookie.sameSite || 'lax')
+        };
+
+        try {
+          await chrome.cookies.remove({ url: 'https://flow.google.com/', name: cookie.name });
+        } catch (_) {}
+
+        await chrome.cookies.set(rootDetails);
+
+        // Also inject via google.com url
+        try {
+          await chrome.cookies.set({
+            ...rootDetails,
+            url: 'https://google.com/'
+          });
+        } catch (_) {}
+
+        console.log(`[FlowDeck Ext] ✅ Injected root cookie: ${cookie.name} -> .google.com`);
       }
     } catch (e) {
       console.warn(`[FlowDeck Ext] ⚠️ Failed to set cookie ${cookie.name}:`, e);
