@@ -50,15 +50,22 @@ export class AccountPoolManager {
           for (const item of parsed) {
             const serverId = item.id as ServerId;
             const cookies: CookieItem[] = Array.isArray(item.cookies) && item.cookies.length > 0
-              ? item.cookies.map((c: any) => ({
-                  name: c.name,
-                  value: c.value && !c.value.startsWith('REPLACE_WITH_') ? c.value : `session_token_${serverId}_${Math.random().toString(36).substring(2, 12)}`,
-                  domain: c.domain || (c.name.includes('OSID') ? 'labs.google' : '.google.com'),
-                  path: c.path || '/',
-                  secure: c.secure ?? true,
-                  httpOnly: c.httpOnly ?? true,
-                  sameSite: c.sameSite || 'lax'
-                }))
+              ? item.cookies.map((c: any) => {
+                  const isLabs = (c.name || '').includes('OSID');
+                  const cleanDom = (c.domain || (isLabs ? 'labs.google' : 'google.com')).replace(/^\./, '');
+                  const isClientAccessible = /^(SAPISID|APISID|__Secure-1PAPISID|__Secure-3PAPISID|_ga|SEARCH_SAMESITE|NID)/i.test(c.name);
+                  const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC)/i.test(c.name);
+
+                  return {
+                    name: c.name,
+                    value: c.value && !c.value.startsWith('REPLACE_WITH_') ? c.value : `session_token_${serverId}_${Math.random().toString(36).substring(2, 12)}`,
+                    domain: cleanDom,
+                    path: c.path || '/',
+                    secure: true,
+                    httpOnly: !isClientAccessible,
+                    sameSite: isNoRestriction ? ('no_restriction' as const) : (c.sameSite || ('lax' as const))
+                  };
+                })
               : this.generateMockCookies(serverId);
 
             const email = item.email || `${serverId}@gmail.com`;

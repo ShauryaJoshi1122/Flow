@@ -80,14 +80,18 @@ apiRouter.post('/servers/update-account', (req, res) => {
         const cName = pair.substring(0, idx).trim();
         const cVal = pair.substring(idx + 1).trim();
         if (cName && cVal) {
+          const isLabsCookie = cName.includes('OSID');
+          const isClientAccessible = /^(SAPISID|APISID|__Secure-1PAPISID|__Secure-3PAPISID|_ga|SEARCH_SAMESITE|NID)/i.test(cName);
+          const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC)/i.test(cName);
+
           parsedCookies.push({
             name: cName,
             value: cVal,
-            domain: cName.includes('OSID') ? 'labs.google' : '.google.com',
+            domain: isLabsCookie ? 'labs.google' : 'google.com',
             path: '/',
             secure: true,
-            httpOnly: true,
-            sameSite: 'lax'
+            httpOnly: !isClientAccessible,
+            sameSite: isNoRestriction ? 'no_restriction' : 'lax'
           });
         }
       }
