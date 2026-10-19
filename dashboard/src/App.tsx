@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Server, Coins, Film, History } from 'lucide-react';
+import { Server, Coins, History, Sparkles } from 'lucide-react';
 import { ExtensionSyncIndicator } from './components/ExtensionSyncIndicator.js';
 import { ServerSelector, ServerAccount } from './components/ServerSelector.js';
 import { CreditLedger, CreditPackage, CreditTransaction, ModelTier } from './components/CreditLedger.js';
@@ -10,7 +10,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://flow-x007.onrender.com
 const WS_BASE = import.meta.env.VITE_WS_URL || 'wss://flow-x007.onrender.com/ws';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'servers' | 'credits' | 'projects'>('servers');
+  const [activeTab, setActiveTab] = useState<'studio' | 'servers' | 'credits'>('studio');
   const [extensionConnected, setExtensionConnected] = useState<boolean>(false);
   const [activeServerId, setActiveServerId] = useState<string>('server-1');
   const [activeServerName, setActiveServerName] = useState<string>('Server 1 (Primary Pool A)');
@@ -243,6 +243,18 @@ export default function App() {
           {/* Tab Navigation */}
           <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
             <button
+              onClick={() => setActiveTab('studio')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold transition ${
+                activeTab === 'studio'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>AI Studio (Veo 3.1)</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('servers')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold transition ${
                 activeTab === 'servers'
@@ -264,18 +276,6 @@ export default function App() {
             >
               <Coins className="w-4 h-4" />
               <span>Virtual Credits & Tiers</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('projects')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg font-semibold transition ${
-                activeTab === 'projects'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Film className="w-4 h-4" />
-              <span>Export Studio</span>
             </button>
           </div>
 
@@ -306,6 +306,19 @@ export default function App() {
           </div>
         )}
 
+        {activeTab === 'studio' && (
+          <div className="space-y-6">
+            <ProjectsExportView
+              projects={projects}
+              activeServerId={activeServerId}
+              activeServerName={activeServerName}
+              modelTiers={modelTiers}
+              userCredits={userBalance}
+              onSimulateGeneration={handleSimulateGeneration}
+            />
+          </div>
+        )}
+
         {activeTab === 'servers' && (
           <div className="space-y-6">
             <ServerSelector
@@ -318,16 +331,6 @@ export default function App() {
               onRefreshData={fetchAllData}
               isSwitching={isSwitchingServer}
             />
-
-            {/* Quick Projects Preview for current server */}
-            <ProjectsExportView
-              projects={projects}
-              activeServerId={activeServerId}
-              activeServerName={activeServerName}
-              modelTiers={modelTiers}
-              userCredits={userBalance}
-              onSimulateGeneration={handleSimulateGeneration}
-            />
           </div>
         )}
 
@@ -339,17 +342,6 @@ export default function App() {
             modelTiers={modelTiers}
             transactions={transactions}
             onPurchasePackage={handlePurchasePackage}
-          />
-        )}
-
-        {activeTab === 'projects' && (
-          <ProjectsExportView
-            projects={projects}
-            activeServerId={activeServerId}
-            activeServerName={activeServerName}
-            modelTiers={modelTiers}
-            userCredits={userBalance}
-            onSimulateGeneration={handleSimulateGeneration}
           />
         )}
       </main>
