@@ -1,4 +1,22 @@
-import { ServerAccount, ServerId, FailoverEvent, ModelTierId } from '../types.js';
+import fs from 'fs';
+import path from 'path';
+import { ServerAccount, ServerId, FailoverEvent, ModelTierId, CookieItem } from '../types.js';
+
+function getAccountsFilePath(): string {
+  const primary = path.resolve(process.cwd(), 'src/data/accounts.json');
+  if (fs.existsSync(primary)) return primary;
+  const secondary = path.resolve(process.cwd(), 'data/accounts.json');
+  if (fs.existsSync(secondary)) return secondary;
+  return primary;
+}
+
+function maskEmail(email: string): string {
+  const atIdx = email.indexOf('@');
+  if (atIdx > 1) {
+    return `${email[0]}***${email.substring(atIdx)}`;
+  }
+  return `${email.substring(0, 3)}***@gmail.com`;
+}
 
 export class AccountPoolManager {
   private servers: Map<ServerId, ServerAccount> = new Map();
@@ -8,7 +26,7 @@ export class AccountPoolManager {
   private onStateChangeCallback?: () => void;
 
   constructor() {
-    this.initializeDefaultPool();
+    this.initializePool();
   }
 
   public setOnStateChange(cb: () => void) {
@@ -19,6 +37,53 @@ export class AccountPoolManager {
     if (this.onStateChangeCallback) {
       this.onStateChangeCallback();
     }
+  }
+
+  private initializePool() {
+    const accountsFile = getAccountsFilePath();
+    try {
+      if (fs.existsSync(accountsFile)) {
+        const fileContent = fs.readFileSync(accountsFile, 'utf-8');
+        const parsed = JSON.parse(fileContent);
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          for (const item of parsed) {
+            const serverId = item.id as ServerId;
+            const cookies: CookieItem[] = Array.isArray(item.cookies) && item.cookies.length > 0
+              ? item.cookies.map((c: any) => ({
+                  name: c.name,
+                  value: c.value && !c.value.startsWith('REPLACE_WITH_') ? c.value : `session_token_${serverId}_${Math.random().toString(36).substring(2, 12)}`,
+                  domain: c.domain || (c.name.includes('OSID') ? 'labs.google' : '.google.com'),
+                  path: c.path || '/',
+                  secure: c.secure ?? true,
+                  httpOnly: c.httpOnly ?? true,
+                  sameSite: c.sameSite || 'lax'
+                }))
+              : this.generateMockCookies(serverId);
+
+            const email = item.email || `${serverId}@gmail.com`;
+            const emailMasked = maskEmail(email);
+
+            this.servers.set(serverId, {
+              id: serverId,
+              name: item.name || `Server (${serverId})`,
+              emailMasked,
+              status: item.status || (serverId === 'server-1' ? 'active' : 'standby'),
+              generationCountToday: 0,
+              quotaLimitToday: item.dailyQuota || 50,
+              lastActive: new Date().toISOString(),
+              totalGenerationsLifetime: 100,
+              cookies
+            });
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[FlowDeck AccountPool] Notice: loading default pool:', err);
+    }
+
+    this.initializeDefaultPool();
   }
 
   private initializeDefaultPool() {
@@ -235,12 +300,61 @@ export class AccountPoolManager {
     this.notifyChange();
   }
 
+  public updateAccount(data: {
+    id: ServerId;
+    name?: string;
+    email?: string;
+    dailyQuota?: number;
+    cookies?: CookieItem[];
+  }): ServerAccount {
+    let server = this.servers.get(data.id);
+    if (!server) {
+      server = {
+        id: data.id,
+        name: data.name || `Server (${data.id})`,
+        emailMasked: data.email ? data.email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => `${a}***${c}`) : `${data.id}***@gmail.com`,
+        status: 'standby',
+        generationCountToday: 0,
+        quotaLimitToday: data.dailyQuota || 50,
+        lastActive: new Date().toISOString(),
+        totalGenerationsLifetime: 0,
+        cookies: data.cookies || this.generateMockCookies(data.id)
+      };
+      this.servers.set(data.id, server);
+    } else {
+      if (data.name) server.name = data.name;
+      if (data.email) server.emailMasked = data.email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => `${a}***${c}`);
+      if (data.dailyQuota) server.quotaLimitToday = data.dailyQuota;
+      if (data.cookies && data.cookies.length > 0) server.cookies = data.cookies;
+    }
+
+    this.saveAccountsToFile();
+    this.notifyChange();
+    return server;
+  }
+
   public resetServerQuota(serverId: ServerId): void {
     const server = this.servers.get(serverId);
     if (server) {
       server.generationCountToday = 0;
       server.status = server.id === this.activeServerId ? 'active' : 'standby';
       this.notifyChange();
+    }
+  }
+
+  public saveAccountsToFile(): void {
+    try {
+      const exportList = Array.from(this.servers.values()).map(s => ({
+        id: s.id,
+        name: s.name,
+        email: s.emailMasked,
+        status: s.status,
+        dailyQuota: s.quotaLimitToday,
+        cookies: s.cookies
+      }));
+      fs.writeFileSync(getAccountsFilePath(), JSON.stringify(exportList, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[FlowDeck] Error saving accounts.json:', err);
     }
   }
 }

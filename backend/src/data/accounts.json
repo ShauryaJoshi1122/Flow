@@ -1,0 +1,128 @@
+[
+  {
+    "id": "server-1",
+    "name": "Server 1 (Custom Studio)",
+    "email": "m***@gmail.com",
+    "status": "active",
+    "dailyQuota": 60,
+    "cookies": [
+      {
+        "name": "__Secure-1PSID",
+        "value": "session_token_server-1_hxqac78pd0",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "__Secure-3PSID",
+        "value": "session_token_server-1_eamdgkyhoc",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "OSID",
+        "value": "session_token_server-1_a3pjmdtua0",
+        "domain": "labs.google",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      }
+    ]
+  },
+  {
+    "id": "server-2",
+    "name": "Server 2 (Primary Pool B)",
+    "email": "y***@gmail.com",
+    "status": "standby",
+    "dailyQuota": 50,
+    "cookies": [
+      {
+        "name": "__Secure-1PSID",
+        "value": "session_token_server-2_uqkkq41w0h",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "__Secure-3PSID",
+        "value": "session_token_server-2_7cnysn43t8",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "OSID",
+        "value": "session_token_server-2_kz2mjo4xqy",
+        "domain": "labs.google",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      }
+    ]
+  },
+  {
+    "id": "server-3",
+    "name": "Server 3 (High-Capacity Node)",
+    "email": "y***@gmail.com",
+    "status": "standby",
+    "dailyQuota": 75,
+    "cookies": [
+      {
+        "name": "__Secure-1PSID",
+        "value": "session_token_server-3_uzwxnd1440",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "OSID",
+        "value": "session_token_server-3_gcvsisxb5c",
+        "domain": "labs.google",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      }
+    ]
+  },
+  {
+    "id": "server-4",
+    "name": "Server 4 (Failover Reserve)",
+    "email": "y***@gmail.com",
+    "status": "standby",
+    "dailyQuota": 50,
+    "cookies": [
+      {
+        "name": "__Secure-1PSID",
+        "value": "session_token_server-4_h6lgnebed7",
+        "domain": ".google.com",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      },
+      {
+        "name": "OSID",
+        "value": "session_token_server-4_o71bar02zo",
+        "domain": "labs.google",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "lax"
+      }
+    ]
+  }
+]

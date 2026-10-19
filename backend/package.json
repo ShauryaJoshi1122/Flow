@@ -1,6 +1,7 @@
 {
   "name": "flowveo-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "FlowVeo Backend - Multi-Account Pooling, Credit Ledger, & Session Injection Hub",
   "main": "dist/index.js",
   "scripts": {

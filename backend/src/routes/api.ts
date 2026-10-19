@@ -63,6 +63,52 @@ apiRouter.post('/servers/reset-quota', (req, res) => {
   }
 });
 
+apiRouter.post('/servers/update-account', (req, res) => {
+  const { serverId, email, name, dailyQuota, cookieString, cookies } = req.body;
+  if (!serverId) {
+    return res.status(400).json({ error: 'serverId is required' });
+  }
+
+  let parsedCookies = Array.isArray(cookies) ? cookies : [];
+
+  // Parse raw cookie string if provided (e.g. "key=val; key2=val2")
+  if (typeof cookieString === 'string' && cookieString.trim()) {
+    const pairs = cookieString.split(';');
+    for (const pair of pairs) {
+      const idx = pair.indexOf('=');
+      if (idx > -1) {
+        const cName = pair.substring(0, idx).trim();
+        const cVal = pair.substring(idx + 1).trim();
+        if (cName && cVal) {
+          parsedCookies.push({
+            name: cName,
+            value: cVal,
+            domain: cName.includes('OSID') ? 'labs.google' : '.google.com',
+            path: '/',
+            secure: true,
+            httpOnly: true,
+            sameSite: 'lax'
+          });
+        }
+      }
+    }
+  }
+
+  const updated = accountPool.updateAccount({
+    id: serverId,
+    email,
+    name,
+    dailyQuota: dailyQuota ? Number(dailyQuota) : undefined,
+    cookies: parsedCookies.length > 0 ? parsedCookies : undefined
+  });
+
+  return res.json({
+    success: true,
+    message: `Account for ${serverId} updated successfully.`,
+    server: updated
+  });
+});
+
 // 3. Virtual Credits Management
 apiRouter.get('/credits', (req, res) => {
   res.json({
