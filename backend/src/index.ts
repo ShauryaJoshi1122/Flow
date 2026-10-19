@@ -2,7 +2,11 @@ import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import { WebSocketServer, WebSocket } from 'ws';
+import path from 'path';
+import fs from 'fs';
 import { apiRouter } from './routes/api.js';
+import { authRouter } from './routes/auth.js';
+import { authService } from './services/authService.js';
 import { accountPool } from './services/accountPool.js';
 import { creditLedger } from './services/creditLedger.js';
 import { sessionManager } from './services/sessionManager.js';
@@ -14,14 +18,40 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// Mount API routes
+// Serve logo
+app.get('/logo.png', (req, res) => {
+  const p = path.resolve(process.cwd(), 'src/views/logo.png');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  const fallback = path.resolve(process.cwd(), '../dashboard/public/logo.png');
+  if (fs.existsSync(fallback)) return res.sendFile(fallback);
+  res.status(404).end();
+});
+
+// Serve Backend Login & Admin Portal
+app.get(['/login', '/admin'], (req, res) => {
+  const loginHtmlPath = path.resolve(process.cwd(), 'src/views/login.html');
+  if (fs.existsSync(loginHtmlPath)) {
+    return res.sendFile(loginHtmlPath);
+  }
+  res.send('<h1>FlowDeck Login</h1><p>Login page file not found.</p>');
+});
+
+// Redirect root to /login
+app.get('/', (req, res) => {
+  res.redirect('/login');
+});
+
+// Mount Authentication routes
+app.use('/api/auth', authRouter);
+
+// Mount core API routes
 app.use('/api', apiRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'FlowVeo Master Server',
+    service: 'FlowDeck Master Server',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
@@ -127,13 +157,20 @@ wss.on('connection', (ws: WebSocket, req) => {
       switch (message.type) {
         case 'EXTENSION_HANDSHAKE': {
           clientInfo.type = 'extension';
+          const token = message.token;
+          const { valid, user } = authService.validateToken(token);
+
           extensionConnected = true;
-          console.log(`[FlowVeo WS] Chrome Extension authenticated: ${clientId} (Version: ${message.version || '1.0.0'})`);
-          
+          console.log(`[FlowDeck WS] Chrome Extension connected: ${clientId} (User: ${user ? user.email : 'Guest'})`);
+
           // Send active session cookies to extension for injection
           ws.send(JSON.stringify({
             type: 'SESSION_INJECT',
-            data: sessionManager.getSessionPayloadForExtension()
+            data: sessionManager.getSessionPayloadForExtension(),
+            auth: {
+              authenticated: valid,
+              user: user ? { name: user.name, email: user.email, role: user.role } : null
+            }
           }));
 
           // Notify dashboard that extension is connected

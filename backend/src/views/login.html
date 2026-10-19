@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowDeck - Backend Control Center & Login</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #030712; color: #f3f4f6; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-container { width: 100%; max-width: 440px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .brand-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .brand-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1.5px solid rgba(59, 130, 246, 0.4); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+    .brand-title h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; }
+    .brand-title p { font-size: 12px; color: #94a3b8; }
+    .tab-switcher { display: flex; background: #0b0f19; border: 1px solid #1e293b; border-radius: 8px; padding: 3px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+    .tab-btn.active { background: #2563eb; color: #ffffff; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+    .form-input { width: 100%; padding: 10px 14px; background: #0b0f19; border: 1px solid #334155; border-radius: 8px; color: #ffffff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    .form-input:focus { border-color: #3b82f6; }
+    .btn-submit { width: 100%; padding: 12px; background: #2563eb; hover: background: #1d4ed8; color: #ffffff; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-top: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .btn-submit:hover { background: #1d4ed8; }
+    .error-alert { display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 16px; }
+    .demo-credentials { margin-top: 24px; padding: 14px; background: rgba(30, 41, 59, 0.5); border: 1px dashed #334155; border-radius: 10px; font-size: 11.5px; color: #94a3b8; line-height: 1.6; }
+    .demo-credentials strong { color: #38bdf8; }
+    .authenticated-view { display: none; text-align: center; }
+    .user-pill { display: inline-flex; align-items: center; gap: 8px; background: #1e293b; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: #34d399; margin: 12px 0 20px 0; border: 1px solid #059669; }
+    .token-box { background: #0b0f19; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #93c5fd; word-break: break-all; margin-bottom: 16px; text-align: left; }
+    .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .btn-action { display: block; padding: 10px; text-align: center; text-decoration: none; font-size: 12px; font-weight: 600; border-radius: 8px; transition: all 0.2s; }
+    .btn-dash { background: #2563eb; color: #fff; }
+    .btn-logout { background: #1e293b; color: #f87171; border: 1px solid #334155; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="brand-header">
+      <img src="/logo.png" alt="FlowDeck" class="brand-logo" onerror="this.style.display='none'">
+      <div class="brand-title">
+        <h1>FlowDeck Control Hub</h1>
+        <p>Google Labs Flow Multi-Account Gateway</p>
+      </div>
+    </div>
+
+    <div id="errorAlert" class="error-alert"></div>
+
+    <!-- Login Form Container -->
+    <div id="loginFormContainer">
+      <div class="tab-switcher">
+        <button type="button" class="tab-btn active" id="tabEmailBtn">Email & Password</button>
+        <button type="button" class="tab-btn" id="tabKeyBtn">License Key</button>
+      </div>
+
+      <form id="loginForm">
+        <div id="emailPasswordFields">
+          <div class="form-group">
+            <label class="form-label">Admin Email</label>
+            <input type="email" id="emailInput" class="form-input" placeholder="admin@flowdeck.ai" value="admin@flowdeck.ai">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="passwordInput" class="form-input" placeholder="••••••••" value="admin123">
+          </div>
+        </div>
+
+        <div id="licenseKeyFields" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">FlowDeck License Key</label>
+            <input type="text" id="licenseKeyInput" class="form-input" placeholder="FLOWDECK-ADMIN-MASTER">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">Authenticate Session</button>
+      </form>
+
+      <div class="demo-credentials">
+        <strong>Default Credentials:</strong><br>
+        • Email: <code style="color:#e2e8f0">admin@flowdeck.ai</code> | Pass: <code style="color:#e2e8f0">admin123</code><br>
+        • License Key: <code style="color:#e2e8f0">FLOWDECK-ADMIN-MASTER</code>
+      </div>
+    </div>
+
+    <!-- Authenticated View -->
+    <div id="authenticatedContainer" class="authenticated-view">
+      <div class="user-pill">
+        <span>●</span> <span id="authUserName">System Administrator</span>
+      </div>
+      <p style="font-size: 12.5px; color: #94a3b8; margin-bottom: 12px;">Authenticated Active Session Token:</p>
+      <div class="token-box" id="tokenDisplay"></div>
+
+      <div class="actions-grid">
+        <a href="http://localhost:5173" class="btn-action btn-dash">Open Dashboard →</a>
+        <button type="button" class="btn-action btn-logout" id="btnLogout">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tabEmailBtn = document.getElementById('tabEmailBtn');
+    const tabKeyBtn = document.getElementById('tabKeyBtn');
+    const emailPasswordFields = document.getElementById('emailPasswordFields');
+    const licenseKeyFields = document.getElementById('licenseKeyFields');
+    const loginForm = document.getElementById('loginForm');
+    const errorAlert = document.getElementById('errorAlert');
+    const loginFormContainer = document.getElementById('loginFormContainer');
+    const authenticatedContainer = document.getElementById('authenticatedContainer');
+    const authUserName = document.getElementById('authUserName');
+    const tokenDisplay = document.getElementById('tokenDisplay');
+    const btnLogout = document.getElementById('btnLogout');
+
+    let mode = 'email';
+
+    tabEmailBtn.addEventListener('click', () => {
+      mode = 'email';
+      tabEmailBtn.classList.add('active');
+      tabKeyBtn.classList.remove('active');
+      emailPasswordFields.style.display = 'block';
+      licenseKeyFields.style.display = 'none';
+    });
+
+    tabKeyBtn.addEventListener('click', () => {
+      mode = 'key';
+      tabKeyBtn.classList.add('active');
+      tabEmailBtn.classList.remove('active');
+      emailPasswordFields.style.display = 'none';
+      licenseKeyFields.style.display = 'block';
+      document.getElementById('licenseKeyInput').value = 'FLOWDECK-ADMIN-MASTER';
+    });
+
+    // Check existing token
+    const existingToken = localStorage.getItem('flowdeck_token');
+    if (existingToken) {
+      showAuthenticated(existingToken, localStorage.getItem('flowdeck_username') || 'Admin');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorAlert.style.display = 'none';
+
+      const body = mode === 'email'
+        ? { email: document.getElementById('emailInput').value, password: document.getElementById('passwordInput').value }
+        : { licenseKey: document.getElementById('licenseKeyInput').value };
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          localStorage.setItem('flowdeck_token', data.token);
+          localStorage.setItem('flowdeck_username', data.user.name);
+          showAuthenticated(data.token, data.user.name);
+        } else {
+          errorAlert.textContent = data.error || 'Authentication failed';
+          errorAlert.style.display = 'block';
+        }
+      } catch (err) {
+        errorAlert.textContent = 'Server connection error';
+        errorAlert.style.display = 'block';
+      }
+    });
+
+    function showAuthenticated(token, name) {
+      loginFormContainer.style.display = 'none';
+      authenticatedContainer.style.display = 'block';
+      authUserName.textContent = name;
+      tokenDisplay.textContent = token;
+    }
+
+    btnLogout.addEventListener('click', () => {
+      const token = localStorage.getItem('flowdeck_token');
+      if (token) {
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => {});
+      }
+      localStorage.removeItem('flowdeck_token');
+      localStorage.removeItem('flowdeck_username');
+      loginFormContainer.style.display = 'block';
+      authenticatedContainer.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

@@ -315,6 +315,7 @@ export default function App() {
               onSelectServer={handleSelectServer}
               onToggleFailover={handleToggleFailover}
               onResetQuota={handleResetQuota}
+              onRefreshData={fetchAllData}
               isSwitching={isSwitchingServer}
             />
 

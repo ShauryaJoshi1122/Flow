@@ -64,7 +64,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="background: #3b82f6; width: 8px; height: 8px; border-radius: 50%;"></span>
-          <strong style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">FlowVeo Engine</strong>
+          <strong style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8;">FlowDeck Engine</strong>
         </div>
         <span style="font-size: 11px; background: #1e293b; padding: 2px 8px; border-radius: 6px; color: #38bdf8;">Veo 3.1 Architecture</span>
       </div>

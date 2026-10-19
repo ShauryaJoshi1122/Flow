@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowVeo Control Panel</title>
+  <title>FlowDeck Control Panel</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup-container">
+    <!-- Header -->
     <header class="header">
       <div class="logo-area">
         <img src="../icons/logo.png" alt="FlowDeck" class="logo-img">
@@ -22,51 +23,123 @@
       </div>
     </header>
 
-    <div class="card active-server-card">
-      <div class="card-header">
-        <span class="card-label">Active Backend Node</span>
-        <span class="badge" id="serverStatusBadge">Active</span>
-      </div>
-      <div class="server-title" id="activeServerName">Server 1 (Primary Pool A)</div>
-      <div class="server-warning">
-        ⚠️ Projects are stored per-server. Do not switch during rendering.
+    <!-- 1. LOGIN VIEW (Shown when user is not authenticated) -->
+    <div id="loginView" style="display: none;">
+      <div class="auth-box">
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tabEmail">Email Login</button>
+          <button type="button" class="auth-tab-btn" id="tabLicense">License Key</button>
+        </div>
+
+        <div id="authAlert" class="auth-alert" style="display: none;"></div>
+
+        <form id="extensionLoginForm">
+          <div id="emailFields">
+            <div class="input-group">
+              <label>Email Address</label>
+              <input type="email" id="loginEmail" placeholder="admin@flowdeck.ai" value="admin@flowdeck.ai">
+            </div>
+            <div class="input-group">
+              <label>Password</label>
+              <input type="password" id="loginPassword" placeholder="••••••••" value="admin123">
+            </div>
+          </div>
+
+          <div id="licenseFields" style="display: none;">
+            <div class="input-group">
+              <label>License Key</label>
+              <input type="text" id="loginLicenseKey" placeholder="FLOWDECK-ADMIN-MASTER">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btnLoginSubmit">
+            Sign In to FlowDeck
+          </button>
+        </form>
+
+        <div class="auth-hint">
+          <strong>Default:</strong> admin@flowdeck.ai / admin123
+        </div>
       </div>
     </div>
 
-    <div class="card credits-card">
-      <div class="card-header">
-        <span class="card-label">Virtual Credits</span>
-        <a href="http://localhost:5173" target="_blank" class="topup-link">Manage Ledger →</a>
+    <!-- 2. MAIN CONTROL PANEL VIEW (Shown when authenticated) -->
+    <div id="controlView" style="display: none;">
+      <!-- User Profile Chip -->
+      <div class="user-chip">
+        <div class="user-info">
+          <span class="user-name" id="userNameLabel">Administrator</span>
+          <span class="user-role" id="userRoleBadge">Pro Active</span>
+        </div>
+        <button class="btn-logout" id="btnLogout" title="Sign Out">Sign Out</button>
       </div>
-      <div class="credit-display">
-        <span class="credit-number" id="userCreditAmount">25,000</span>
-        <span class="credit-unit">Credits</span>
+
+      <!-- Server Selector Dropdown inside Popup -->
+      <div class="card server-card">
+        <div class="card-header">
+          <span class="card-label">Active Node / Gmail Account</span>
+          <span class="badge" id="serverStatusBadge">Active</span>
+        </div>
+
+        <select id="serverSelectDropdown" class="server-dropdown">
+          <option value="server-1">Server 1 (Primary Pool A)</option>
+          <option value="server-2">Server 2 (Primary Pool B)</option>
+          <option value="server-3">Server 3 (High-Capacity Node)</option>
+          <option value="server-4">Server 4 (Failover Reserve)</option>
+        </select>
+
+        <div class="server-warning">
+          ⚠️ Changing server switches the pooled Google account.
+        </div>
       </div>
-      <div class="cost-breakdown">
-        <span>Quality: 150cr</span> • <span>Fast: 75cr</span> • <span>Lite: 40cr</span>
+
+      <!-- Virtual Credits Display -->
+      <div class="card credits-card">
+        <div class="card-header">
+          <span class="card-label">Virtual Credits</span>
+          <a href="http://localhost:5173" target="_blank" class="topup-link">Dashboard →</a>
+        </div>
+        <div class="credit-display">
+          <span class="credit-number" id="userCreditAmount">25,000</span>
+          <span class="credit-unit">Credits</span>
+        </div>
+        <div class="cost-breakdown">
+          <span>Quality: 150cr</span> • <span>Fast: 75cr</span> • <span>Lite: 40cr</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-primary" id="btnLaunchFlow">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Open Authenticated Flow Session
+        </button>
+
+        <div class="secondary-actions">
+          <button class="btn btn-secondary" id="btnSyncCookies" title="Re-inject active session cookies">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            Sync Cookies
+          </button>
+
+          <button class="btn btn-secondary" id="btnOpenDashboard" title="Open Web Dashboard">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
+            </svg>
+            Dashboard
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-primary" id="btnLaunchFlow">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        Launch Authenticated Flow Session
-      </button>
-
-      <button class="btn btn-secondary" id="btnOpenDashboard">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="3" y1="9" x2="21" y2="9"></line>
-          <line x1="9" y1="21" x2="9" y2="9"></line>
-        </svg>
-        Open FlowVeo Dashboard
-      </button>
-    </div>
-
+    <!-- Footer -->
     <footer class="footer">
-      <span>Protected Multi-Tenant Google Session</span>
+      <span>FlowDeck • Protected Google Labs Session Virtualization</span>
     </footer>
   </div>
 

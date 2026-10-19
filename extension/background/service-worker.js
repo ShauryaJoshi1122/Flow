@@ -1,4 +1,4 @@
-// FlowVeo Chrome Extension - Background Service Worker (Manifest V3)
+// FlowDeck Chrome Extension - Background Service Worker (Manifest V3)
 
 const WS_URL = 'ws://localhost:3001/ws';
 const API_URL = 'http://localhost:3001/api';
@@ -8,7 +8,19 @@ let isConnected = false;
 let reconnectInterval = 3000;
 let currentSessionData = null;
 
-// Connect to FlowVeo backend WebSocket server
+async function getAuthHeader() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['flowdeck_token'], (data) => {
+      if (data.flowdeck_token) {
+        resolve({ 'Authorization': `Bearer ${data.flowdeck_token}` });
+      } else {
+        resolve({});
+      }
+    });
+  });
+}
+
+// Connect to FlowDeck backend WebSocket server
 function connectWebSocket() {
   if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
     return;
@@ -18,16 +30,19 @@ function connectWebSocket() {
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
-      console.log('[FlowVeo Ext] WebSocket connected to FlowVeo Backend');
+      console.log('[FlowDeck Ext] WebSocket connected to FlowDeck Backend');
       isConnected = true;
       reconnectInterval = 3000;
 
-      // Send handshake identifying this client as the Chrome Extension
-      socket.send(JSON.stringify({
-        type: 'EXTENSION_HANDSHAKE',
-        version: '1.0.0',
-        userAgent: navigator.userAgent
-      }));
+      chrome.storage.local.get(['flowdeck_token'], (storage) => {
+        // Send handshake identifying this client as the Chrome Extension with optional auth token
+        socket.send(JSON.stringify({
+          type: 'EXTENSION_HANDSHAKE',
+          version: '1.0.0',
+          token: storage.flowdeck_token || null,
+          userAgent: navigator.userAgent
+        }));
+      });
 
       chrome.storage.local.set({
         extensionConnected: true,
@@ -38,7 +53,7 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
       try {
         const msg = JSON.parse(event.data);
-        console.log('[FlowVeo Ext] Received WS message:', msg.type);
+        console.log('[FlowDeck Ext] Received WS message:', msg.type);
 
         if (msg.type === 'SESSION_INJECT') {
           currentSessionData = msg.data;
@@ -54,17 +69,17 @@ function connectWebSocket() {
 
           // Forward state update to open Google Labs tabs
           broadcastToTabs({
-            type: 'FLOWVEO_STATE_UPDATE',
+            type: 'FLOWDECK_STATE_UPDATE',
             data: msg.data
           });
         }
       } catch (e) {
-        console.error('[FlowVeo Ext] Error handling message:', e);
+        console.error('[FlowDeck Ext] Error handling message:', e);
       }
     };
 
     socket.onclose = () => {
-      console.log('[FlowVeo Ext] WebSocket disconnected. Reconnecting in', reconnectInterval / 1000, 's');
+      console.log('[FlowDeck Ext] WebSocket disconnected. Reconnecting in', reconnectInterval / 1000, 's');
       isConnected = false;
       chrome.storage.local.set({ extensionConnected: false });
       setTimeout(connectWebSocket, reconnectInterval);
@@ -72,10 +87,10 @@ function connectWebSocket() {
     };
 
     socket.onerror = (err) => {
-      console.warn('[FlowVeo Ext] WebSocket error:', err);
+      console.warn('[FlowDeck Ext] WebSocket error:', err);
     };
   } catch (err) {
-    console.error('[FlowVeo Ext] WebSocket connection exception:', err);
+    console.error('[FlowDeck Ext] WebSocket connection exception:', err);
     setTimeout(connectWebSocket, reconnectInterval);
   }
 }
@@ -83,7 +98,7 @@ function connectWebSocket() {
 // Injects Google account session cookies using chrome.cookies API
 async function injectSessionCookies(sessionPayload) {
   if (!sessionPayload || !sessionPayload.cookies) return;
-  console.log(`[FlowVeo Ext] Injecting session cookies for ${sessionPayload.serverName}...`);
+  console.log(`[FlowDeck Ext] Injecting session cookies for ${sessionPayload.serverName}...`);
 
   for (const cookie of sessionPayload.cookies) {
     try {
@@ -101,9 +116,8 @@ async function injectSessionCookies(sessionPayload) {
         httpOnly: cookie.httpOnly ?? true,
         sameSite: cookie.sameSite || 'lax'
       });
-      console.log(`[FlowVeo Ext] Injected cookie: ${cookie.name} -> ${cookie.domain}`);
     } catch (e) {
-      console.warn(`[FlowVeo Ext] Failed to set cookie ${cookie.name}:`, e);
+      console.warn(`[FlowDeck Ext] Failed to set cookie ${cookie.name}:`, e);
     }
   }
 
@@ -135,26 +149,59 @@ function broadcastToTabs(payload) {
 
 // Handle runtime messages from Popup and Content Scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'USER_LOGGED_IN') {
+    if (socket) socket.close();
+    connectWebSocket();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.type === 'USER_LOGGED_OUT') {
+    if (socket) socket.close();
+    connectWebSocket();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.type === 'FORCE_REFRESH_COOKIES') {
+    (async () => {
+      try {
+        const authHeaders = await getAuthHeader();
+        const res = await fetch(`${API_URL}/session/injection-payload`, { headers: authHeaders });
+        if (res.ok) {
+          const data = await res.json();
+          currentSessionData = data;
+          await injectSessionCookies(data);
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: 'Failed to fetch payload' });
+        }
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    })();
+    return true;
+  }
+
   if (request.type === 'OPEN_LABS_FLOW') {
     (async () => {
-      // First ensure session cookies are injected
       if (currentSessionData) {
         await injectSessionCookies(currentSessionData);
       } else {
-        // Fetch from backend API
         try {
-          const res = await fetch(`${API_URL}/session/injection-payload`);
+          const authHeaders = await getAuthHeader();
+          const res = await fetch(`${API_URL}/session/injection-payload`, { headers: authHeaders });
           if (res.ok) {
             const data = await res.json();
             currentSessionData = data;
             await injectSessionCookies(data);
           }
         } catch (e) {
-          console.error('[FlowVeo Ext] Error fetching session payload:', e);
+          console.error('[FlowDeck Ext] Error fetching session payload:', e);
         }
       }
 
-      // Check if a Flow tab is already open
+      // Focus or open Flow tab
       chrome.tabs.query({ url: '*://labs.google/fx/tools/flow*' }, (tabs) => {
         if (tabs && tabs.length > 0) {
           chrome.tabs.update(tabs[0].id, { active: true });
@@ -165,7 +212,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       sendResponse({ success: true });
     })();
-    return true; // Keep response channel open for async
+    return true;
   }
 
   if (request.type === 'GET_EXTENSION_STATUS') {
@@ -192,9 +239,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'VERIFY_AND_DEDUCT_CREDITS') {
     (async () => {
       try {
+        const authHeaders = await getAuthHeader();
         const res = await fetch(`${API_URL}/generate`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
           body: JSON.stringify({
             modelTier: request.modelTier,
             prompt: request.prompt
