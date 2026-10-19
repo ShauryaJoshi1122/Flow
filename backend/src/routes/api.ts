@@ -80,9 +80,14 @@ apiRouter.post('/servers/update-account', (req, res) => {
         const cName = pair.substring(0, idx).trim();
         const cVal = pair.substring(idx + 1).trim();
         if (cName && cVal) {
+          // Ignore standard Set-Cookie attributes
+          if (/^(path|domain|expires|max-age|samesite|httponly|secure|priority)$/i.test(cName)) {
+            continue;
+          }
+
           const isLabsCookie = cName.includes('OSID');
           const isClientAccessible = /^(SAPISID|APISID|__Secure-1PAPISID|__Secure-3PAPISID|_ga|SEARCH_SAMESITE|NID)/i.test(cName);
-          const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC)/i.test(cName);
+          const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC|__Secure-OSID|OSID)/i.test(cName);
 
           parsedCookies.push({
             name: cName,
@@ -95,6 +100,21 @@ apiRouter.post('/servers/update-account', (req, res) => {
           });
         }
       }
+    }
+
+    // Auto-mirror __Secure-OSID to OSID on labs.google if OSID is missing
+    const secureOsid = parsedCookies.find(c => c.name === '__Secure-OSID');
+    const osid = parsedCookies.find(c => c.name === 'OSID');
+    if (secureOsid && !osid) {
+      parsedCookies.push({
+        name: 'OSID',
+        value: secureOsid.value,
+        domain: 'labs.google',
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'no_restriction'
+      });
     }
   }
 

@@ -7,31 +7,22 @@
     "dailyQuota": 60,
     "cookies": [
       {
-        "name": "__Secure-1PSID",
-        "value": "session_token_server-1_hxqac78pd0",
-        "domain": ".google.com",
-        "path": "/",
-        "secure": true,
-        "httpOnly": true,
-        "sameSite": "lax"
-      },
-      {
-        "name": "__Secure-3PSID",
-        "value": "session_token_server-1_eamdgkyhoc",
-        "domain": ".google.com",
-        "path": "/",
-        "secure": true,
-        "httpOnly": true,
-        "sameSite": "lax"
-      },
-      {
-        "name": "OSID",
-        "value": "session_token_server-1_a3pjmdtua0",
+        "name": "__Secure-OSID",
+        "value": "g.a000CwknySKxdi9YHqcl5r4DC7r0gzDf1kdMKjs5sQ06CUDsNXcA3R44tvXE1na21HOAqggscAACgYKAVkSARYSFQHGX2MiEWUydbCdokqzWB-PaPASXxoVAUF8yKpalKEdHrcWYawRxDt4cFC40076",
         "domain": "labs.google",
         "path": "/",
         "secure": true,
         "httpOnly": true,
-        "sameSite": "lax"
+        "sameSite": "no_restriction"
+      },
+      {
+        "name": "OSID",
+        "value": "g.a000CwknySKxdi9YHqcl5r4DC7r0gzDf1kdMKjs5sQ06CUDsNXcA3R44tvXE1na21HOAqggscAACgYKAVkSARYSFQHGX2MiEWUydbCdokqzWB-PaPASXxoVAUF8yKpalKEdHrcWYawRxDt4cFC40076",
+        "domain": "labs.google",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "no_restriction"
       }
     ]
   },

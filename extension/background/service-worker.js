@@ -103,47 +103,53 @@ async function injectSessionCookies(sessionPayload) {
   }
   console.log(`[FlowDeck Ext] Injecting ${sessionPayload.cookies.length} session cookies for ${sessionPayload.serverName}...`);
 
-  // Clear any existing stale labs.google session tokens to avoid collision
-  const staleTokens = ['OSID', '__Secure-OSID', 'FLOW_AUTH_SESSION'];
-  for (const name of staleTokens) {
-    try {
-      await chrome.cookies.remove({ url: 'https://labs.google/', name });
-    } catch (_) {}
-  }
-
   for (const cookie of sessionPayload.cookies) {
     try {
+      // NEVER inject mock or placeholder tokens into browser
+      if (!cookie.value || cookie.value.startsWith('session_token_') || cookie.value.startsWith('session_3p_') || cookie.value.startsWith('osid_labs_flow_') || cookie.value.startsWith('REPLACE_WITH_')) {
+        console.warn(`[FlowDeck Ext] ⚠️ Skipping mock placeholder cookie: ${cookie.name}`);
+        continue;
+      }
+
       const rawDomain = cookie.domain || (cookie.name.includes('OSID') ? 'labs.google' : 'google.com');
       // CRITICAL: Chrome cookies API strictly forbids leading dots in domain
       const cleanDomain = rawDomain.replace(/^\./, '');
       const isLabs = cleanDomain.includes('labs.google');
       const targetUrl = isLabs ? 'https://labs.google/' : 'https://google.com/';
 
+      // Remove previous cookie with same name before setting to ensure fresh state
+      try {
+        await chrome.cookies.remove({ url: targetUrl, name: cookie.name });
+      } catch (_) {}
+
       // CRITICAL: SAPISID and APISID must NOT be httpOnly so Google's JS can generate SAPISIDHASH
       const isClientAccessible = /^(SAPISID|APISID|__Secure-1PAPISID|__Secure-3PAPISID|_ga|SEARCH_SAMESITE|NID)/i.test(cookie.name);
-      const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC)/i.test(cookie.name);
+      const isNoRestriction = /^(__Secure-3PSID|__Secure-3PAPISID|__Secure-3PSIDTS|__Secure-3PSIDCC|__Secure-OSID|OSID)/i.test(cookie.name);
 
       const cookieDetails = {
         url: targetUrl,
         name: cookie.name,
         value: cookie.value,
-        domain: cleanDomain,
         path: cookie.path || '/',
         secure: true,
         httpOnly: !isClientAccessible,
         sameSite: isNoRestriction ? 'no_restriction' : (cookie.sameSite || 'lax')
       };
 
+      // For non-labs (e.g. google.com), set domain to cover subdomains. For labs.google, omit domain to create host-only cookie
+      if (!isLabs) {
+        cookieDetails.domain = cleanDomain;
+      }
+
       await chrome.cookies.set(cookieDetails);
-      console.log(`[FlowDeck Ext] ✅ Injected cookie: ${cookie.name} -> ${cleanDomain}`);
+      console.log(`[FlowDeck Ext] ✅ Injected cookie: ${cookie.name} -> ${isLabs ? 'labs.google (host-only)' : cleanDomain}`);
 
       // For cross-subdomain Google cookies, also ensure labs.google can read them directly
       if (!isLabs && (cookie.name === '__Secure-1PSID' || cookie.name === 'OSID' || cookie.name === 'SAPISID')) {
         try {
           await chrome.cookies.set({
             ...cookieDetails,
-            url: 'https://labs.google/',
-            domain: 'labs.google'
+            url: 'https://labs.google/'
           });
         } catch (_) {}
       }

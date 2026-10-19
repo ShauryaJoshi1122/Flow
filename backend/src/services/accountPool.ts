@@ -332,7 +332,21 @@ export class AccountPoolManager {
       if (data.name) server.name = data.name;
       if (data.email) server.emailMasked = data.email.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => `${a}***${c}`);
       if (data.dailyQuota) server.quotaLimitToday = data.dailyQuota;
-      if (data.cookies && data.cookies.length > 0) server.cookies = data.cookies;
+      if (data.cookies && data.cookies.length > 0) {
+        const cookieMap = new Map<string, CookieItem>();
+        // Keep non-placeholder existing cookies
+        for (const existing of server.cookies) {
+          const val = existing.value || '';
+          if (!val.startsWith('session_token_') && !val.startsWith('session_3p_') && !val.startsWith('osid_labs_flow_')) {
+            cookieMap.set(existing.name, existing);
+          }
+        }
+        // Add or overwrite with incoming cookies
+        for (const incoming of data.cookies) {
+          cookieMap.set(incoming.name, incoming);
+        }
+        server.cookies = Array.from(cookieMap.values());
+      }
     }
 
     this.saveAccountsToFile();
